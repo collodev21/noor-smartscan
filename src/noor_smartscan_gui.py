@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+import tempfile
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 
@@ -17,8 +18,14 @@ class SmartScanApp:
         self.root.minsize(720, 480)
         self.paths: list[Path] = []
         self.photo = None
+        self.tempdir = tempfile.TemporaryDirectory(prefix="noor-smartscan-")
+        self.root.protocol("WM_DELETE_WINDOW", self._close)
         self._style()
         self._build()
+
+    def _close(self):
+        self.tempdir.cleanup()
+        self.root.destroy()
 
     def _style(self):
         style = ttk.Style(self.root)
@@ -110,9 +117,7 @@ class SmartScanApp:
             with Image.open(self.paths[index]) as im:
                 rotated = im.rotate(90, expand=True)
                 # Keep edit in memory in a temporary local image; never replace the source.
-                from tempfile import NamedTemporaryFile
-                with NamedTemporaryFile(prefix="noor-smartscan-", suffix=self.paths[index].suffix, delete=False) as tmp:
-                    temp_path = Path(tmp.name)
+                temp_path = Path(self.tempdir.name) / f"rotated-{index}.png"
                 rotated.save(temp_path)
             self.paths[index] = temp_path
             self.listbox.delete(index)
